@@ -18,6 +18,7 @@ PROMPT_FOR_BOUNDS = False
 DEFAULT_INPUT_FILENAME = "data.csv"
 
 devices = {}
+most_recent = 0
 
 def ticker_function(epoch, pos):
         win_offset = 4*3600000/1000
@@ -34,6 +35,10 @@ def plot_coords(ax, coords, label):
 			label=label)
 
 def add_row(name, date, temp):
+	global most_recent
+	print([date, temp])
+	if(date > most_recent):
+		most_recent = date
 	if(not name in devices):
 		devices[name] = []
 	devices[name].append([date, temp])
@@ -56,7 +61,7 @@ sys.stdout.flush()
 
 data = csv.reader(codecs.iterdecode(urllib.request.urlopen("http://10.199.251.176:44449/GFC_data.csv"), 'utf-8'), delimiter=",")
 for row in data:
-	add_row(row[1].strip(" \""), get_epoch(row[0]), row[2]);
+	add_row(row[1].strip(" \""), get_epoch(row[0]), row[2])
 
 print(" DONE")
 
@@ -105,6 +110,15 @@ fig.canvas.mpl_connect('pick_event', onpick)
 
 def update_temp():
 	while(True):
+		print("Querying...")
+		data = csv.reader(codecs.iterdecode(urllib.request.urlopen("http://10.199.251.176:44449/GFC_data.csv"), 'utf-8'), delimiter=",")
+		for row in data:
+			date = get_epoch(row[0])
+			print("%d > %d" % (date, most_recent))
+			if(date > most_recent):
+				add_row(row[1].strip(" \""), date, row[2]);
+		print("Done")
+
 		current_temps = []
 		for name, data in sorted(devices.items(), key=operator.itemgetter(0)):
 			current_temps.append([name, float(data[-1][1])])
